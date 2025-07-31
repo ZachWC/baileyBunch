@@ -12,15 +12,26 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static('/tmp/uploads'));
 
-// Create uploads directory if it doesn't exist
-if (!fs.existsSync('uploads')) {
-    fs.mkdirSync('uploads');
+// Create uploads directory if it doesn't exist (with error handling)
+const uploadsDir = '/tmp/uploads';
+try {
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+} catch (error) {
+    console.log('Directory creation handled:', error.message);
 }
 
-// Initialize SQLite database
-const db = new sqlite3.Database('family_media.db');
+// Initialize SQLite database (with error handling for serverless)
+let db;
+try {
+    db = new sqlite3.Database('/tmp/family_media.db');
+} catch (error) {
+    console.error('Database initialization error:', error);
+    db = new sqlite3.Database(':memory:'); // Fallback to in-memory database
+}
 
 // Create media table if it doesn't exist
 db.serialize(() => {
@@ -38,7 +49,7 @@ db.serialize(() => {
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/');
+        cb(null, '/tmp/uploads/');
     },
     filename: (req, file, cb) => {
         const timestamp = Date.now();

@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Media - Family Memories</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+            padding: 2rem 0;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .upload-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .upload-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-areas {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #f8f9ff, #ffffff);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: linear-gradient(45deg, #f0f2ff, #f8f9ff);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: linear-gradient(45deg, #e8ebff, #f0f2ff);
+            transform: scale(1.02);
+        }
+
+        .upload-area.has-files {
+            border-color: #28a745;
+            background: linear-gradient(45deg, #f0fff4, #ffffff);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover .upload-icon {
+            transform: scale(1.1);
+        }
+
+        .upload-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .upload-description {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .file-count {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .tag-section {
+            margin-bottom: 30px;
+        }
+
+        .tag-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+            background: white;
+        }
+
+        .tag-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .tag-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .tag-suggestion {
+            background: #f0f0f0;
+            color: #666;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tag-suggestion:hover {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .selected-files {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .file-preview {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .file-preview:last-child {
+            margin-bottom: 0;
+        }
+
+        .file-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .remove-file {
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .remove-file:hover {
+            background: #ff3742;
+            transform: scale(1.1);
+        }
+
+        .upload-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .clear-btn {
+            background: transparent;
+            color: #666;
+            border: 2px solid #ddd;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .clear-btn:hover {
+            border-color: #ff4757;
+            color: #ff4757;
+        }
+
+        .progress-section {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .success-message.active {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        .back-to-home {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .back-to-home:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .upload-areas {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .upload-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .upload-btn, .clear-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">🏠 Family Memories</a>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/upload" class="active">Upload Media</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>📤 Upload Your Memories</h1>
+            <p>Add photos and videos to your family collection</p>
+        </div>
+
+        <div class="upload-container">
+            <div class="upload-section">
+                <h2 class="section-title">📁 Select Files</h2>
+                
+                <div class="upload-areas">
+                    <div class="upload-area" id="photoUpload">
+                        <div class="upload-icon">📸</div>
+                        <div class="upload-title">Upload Photos</div>
+                        <div class="upload-description">Drag and drop or click to select photos</div>
+                        <div class="file-count" id="photoCount" style="display: none;">0 photos selected</div>
+                        <input type="file" id="photoInput" class="file-input" multiple accept="image/*">
+                    </div>
+                    
+                    <div class="upload-area" id="videoUpload">
+                        <div class="upload-icon">🎥</div>
+                        <div class="upload-title">Upload Videos</div>
+                        <div class="upload-description">Drag and drop or click to select videos</div>
+                        <div class="file-count" id="videoCount" style="display: none;">0 videos selected</div>
+                        <input type="file" id="videoInput" class="file-input" multiple accept="video/*">
+                    </div>
+                </div>
+            </div>
+
+            <div class="tag-section">
+                <h2 class="section-title">🏷️ Tag People</h2>
+                <input type="text" id="tagInput" class="tag-input" placeholder="Tag people in these media files (e.g., Mom, Dad, Sarah, John)">
+                <div class="tag-suggestions">
+                    <span class="tag-suggestion">Grandparents</span>
+                    <span class="tag-suggestion">Bob</span>
+                    <span class="tag-suggestion">Mitzi</span>
+                    <span class="tag-suggestion">Heather</span>
+                    <span class="tag-suggestion">Amber</span>
+                    <span class="tag-suggestion">Aubrey</span>
+                    <span class="tag-suggestion">Alexa</span>
+                    <span class="tag-suggestion">Jordan</span>
+                    <span class="tag-suggestion">Brandon</span>
+                    <span class="tag-suggestion">Tyson</span>
+                    <span class="tag-suggestion">Riley</span>
+                    <span class="tag-suggestion">Kobe</span>
+                    <span class="tag-suggestion">Carson</span>
+                    <span class="tag-suggestion">Ashlyn</span>
+                    <span class="tag-suggestion">Brooklyn</span>
+                    <span class="tag-suggestion">Parker</span>
+                    <span class="tag-suggestion">Kyle</span>
+                    <span class="tag-suggestion">Jesse</span>
+                    <span class="tag-suggestion">Zach</span>
+                    <span class="tag-suggestion">Brighton</span>
+                    <span class="tag-suggestion">Addie</span>
+                    <span class="tag-suggestion">Hudson</span>
+                    <span class="tag-suggestion">Quinn</span>
+                    <span class="tag-suggestion">Scottie</span>
+                    <span class="tag-suggestion">Rosie</span>
+                    <span class="tag-suggestion">Bennie</span>
+                    <span class="tag-suggestion">Tessa</span>
+                    <span class="tag-suggestion">Becham</span>
+                    <span class="tag-suggestion">Oakley</span>
+                    <span class="tag-suggestion">Sheilya</span>
+                    <span class="tag-suggestion">Emery</span>
+                </div>
+            </div>
+
+            <div class="selected-files" id="selectedFiles" style="display: none;">
+                <h3 style="margin-bottom: 15px;">Selected Files</h3>
+                <div id="fileList"></div>
+            </div>
+
+            <div class="upload-controls">
+                <button id="clearBtn" class="clear-btn">Clear All</button>
+                <button id="uploadBtn" class="upload-btn" disabled>
+                    <span>📤</span>
+                    Upload Files
+                </button>
+            </div>
+
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Uploading... 0%</div>
+            </div>
+
+            <div class="success-message" id="successMessage">
+                <h3>🎉 Upload Successful!</h3>
+                <p>Your media files have been added to your family collection.</p>
+                <a href="/" class="back-to-home">View Your Collection</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class FamilyMediaUpload {
+            constructor() {
+                this.selectedFiles = [];
+                this.photoFiles = [];
+                this.videoFiles = [];
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                // Upload area interactions
+                const photoUpload = document.getElementById('photoUpload');
+                const videoUpload = document.getElementById('videoUpload');
+                const photoInput = document.getElementById('photoInput');
+                const videoInput = document.getElementById('videoInput');
+
+                photoUpload.addEventListener('click', () => photoInput.click());
+                videoUpload.addEventListener('click', () => videoInput.click());
+
+                // Drag and drop for both areas
+                [photoUpload, videoUpload].forEach(area => {
+                    area.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        area.classList.add('dragover');
+                    });
+
+                    area.addEventListener('dragleave', () => {
+                        area.classList.remove('dragover');
+                    });
+
+                    area.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        area.classList.remove('dragover');
+                        const files = Array.from(e.dataTransfer.files);
+                        this.handleFileSelection(files, area.id === 'photoUpload' ? 'photo' : 'video');
+                    });
+                });
+
+                // File input changes
+                photoInput.addEventListener('change', (e) => {
+                    this.handleFileSelection(Array.from(e.target.files), 'photo');
+                });
+
+                videoInput.addEventListener('change', (e) => {
+                    this.handleFileSelection(Array.from(e.target.files), 'video');
+                });
+
+                // Tag suggestions
+                document.querySelectorAll('.tag-suggestion').forEach(suggestion => {
+                    suggestion.addEventListener('click', (e) => {
+                        this.addTagSuggestion(e.target.textContent);
+                    });
+                });
+
+                // Control buttons
+                document.getElementById('uploadBtn').addEventListener('click', () => {
+                    this.uploadFiles();
+                });
+
+                document.getElementById('clearBtn').addEventListener('click', () => {
+                    this.clearAllFiles();
+                });
+            }
+
+            handleFileSelection(files, type) {
+                const validFiles = files.filter(file => {
+                    if (type === 'photo') {
+                        return file.type.startsWith('image/');
+                    } else {
+                        return file.type.startsWith('video/');
+                    }
+                });
+
+                if (type === 'photo') {
+                    this.photoFiles = [...this.photoFiles, ...validFiles];
+                } else {
+                    this.videoFiles = [...this.videoFiles, ...validFiles];
+                }
+
+                this.selectedFiles = [...this.photoFiles, ...this.videoFiles];
+                this.updateUI();
+            }
+
+            updateUI() {
+                // Update counters
+                const photoCount = document.getElementById('photoCount');
+                const videoCount = document.getElementById('videoCount');
+                const photoUpload = document.getElementById('photoUpload');
+                const videoUpload = document.getElementById('videoUpload');
+
+                if (this.photoFiles.length > 0) {
+                    photoCount.style.display = 'block';
+                    photoCount.textContent = `${this.photoFiles.length} photo${this.photoFiles.length > 1 ? 's' : ''} selected`;
+                    photoUpload.classList.add('has-files');
+                } else {
+                    photoCount.style.display = 'none';
+                    photoUpload.classList.remove('has-files');
+                }
+
+                if (this.videoFiles.length > 0) {
+                    videoCount.style.display = 'block';
+                    videoCount.textContent = `${this.videoFiles.length} video${this.videoFiles.length > 1 ? 's' : ''} selected`;
+                    videoUpload.classList.add('has-files');
+                } else {
+                    videoCount.style.display = 'none';
+                    videoUpload.classList.remove('has-files');
+                }
+
+                // Update file list
+                this.renderFileList();
+
+                // Update upload button
+                const uploadBtn = document.getElementById('uploadBtn');
+                uploadBtn.disabled = this.selectedFiles.length === 0;
+                
+                if (this.selectedFiles.length > 0) {
+                    uploadBtn.innerHTML = `<span>📤</span> Upload ${this.selectedFiles.length} File${this.selectedFiles.length > 1 ? 's' : ''}`;
+                } else {
+                    uploadBtn.innerHTML = '<span>📤</span> Upload Files';
+                }
+            }
+
+            renderFileList() {
+                const selectedFilesDiv = document.getElementById('selectedFiles');
+                const fileList = document.getElementById('fileList');
+
+                if (this.selectedFiles.length === 0) {
+                    selectedFilesDiv.style.display = 'none';
+                    return;
+                }
+
+                selectedFilesDiv.style.display = 'block';
+                fileList.innerHTML = this.selectedFiles.map((file, index) => `
+                    <div class="file-preview">
+                        <div class="file-thumbnail">
+                            ${file.type.startsWith('image/') ? '📸' : '🎥'}
+                        </div>
+                        <div class="file-info">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${this.formatFileSize(file.size)}</div>
+                        </div>
+                        <button class="remove-file" onclick="familyUpload.removeFile(${index})">×</button>
+                    </div>
+                `).join('');
+            }
+
+            removeFile(index) {
+                const file = this.selectedFiles[index];
+                
+                // Remove from appropriate array
+                if (file.type.startsWith('image/')) {
+                    this.photoFiles = this.photoFiles.filter(f => f !== file);
+                } else {
+                    this.videoFiles = this.videoFiles.filter(f => f !== file);
+                }
+
+                this.selectedFiles = [...this.photoFiles, ...this.videoFiles];
+                this.updateUI();
+            }
+
+            clearAllFiles() {
+                this.selectedFiles = [];
+                this.photoFiles = [];
+                this.videoFiles = [];
+                
+                // Clear file inputs
+                document.getElementById('photoInput').value = '';
+                document.getElementById('videoInput').value = '';
+                document.getElementById('tagInput').value = '';
+                
+                this.updateUI();
+            }
+
+            addTagSuggestion(tag) {
+                const tagInput = document.getElementById('tagInput');
+                const currentTags = tagInput.value.split(',').map(t => t.trim()).filter(t => t);
+                
+                if (!currentTags.includes(tag)) {
+                    currentTags.push(tag);
+                    tagInput.value = currentTags.join(', ');
+                }
+            }
+
+            async uploadFiles() {
+                if (this.selectedFiles.length === 0) {
+                    alert('Please select files to upload first!');
+                    return;
+                }
+
+                const formData = new FormData();
+                const tags = document.getElementById('tagInput').value;
+
+                // Add all files to FormData
+                this.selectedFiles.forEach(file => {
+                    formData.append('media', file);
+                });
+
+                // Add tags
+                formData.append('tags', tags);
+
+                // Show progress
+                const progressSection = document.getElementById('progressSection');
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                const uploadBtn = document.getElementById('uploadBtn');
+
+                progressSection.classList.add('active');
+                uploadBtn.disabled = true;
+                uploadBtn.innerHTML = '<span>⏳</span> Uploading...';
+
+                try {
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    // Simulate progress for better UX
+                    for (let i = 0; i <= 100; i += 10) {
+                        progressFill.style.width = i + '%';
+                        progressText.textContent = `Uploading... ${i}%`;
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        this.showSuccess();
+                    } else {
+                        throw new Error('Upload failed');
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    this.showError('Upload failed. Please try again.');
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerHTML = '<span>📤</span> Upload Files';
+                    progressSection.classList.remove('active');
+                }
+            }
+
+            showSuccess() {
+                const successMessage = document.getElementById('successMessage');
+                const progressSection = document.getElementById('progressSection');
+                
+                progressSection.classList.remove('active');
+                successMessage.classList.add('active');
+                
+                // Clear the form
+                setTimeout(() => {
+                    this.clearAllFiles();
+                }, 2000);
+            }
+
+            showError(message) {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed; top: 20px; right: 20px; z-index: 10000;
+                    background: #ff4757; color: white; padding: 15px 20px;
+                    border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 5000);
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        }
+
+        // Initialize the application
+        const familyUpload = new FamilyMediaUpload();
+    </script>
+</body>
+</html>

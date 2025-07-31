@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Memories - Home</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+            padding: 2rem 0;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .filter-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .filter-tab:hover {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .media-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .media-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .media-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .media-info {
+            padding: 15px;
+        }
+
+        .media-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .media-date {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .media-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .tag {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .video-indicator {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+        }
+
+        .modal-media {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        .modal-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            font-size: 24px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .upload-cta {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .media-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 15px;
+            }
+            
+            .stats {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">🏠 Family Memories</a>
+            <ul class="nav-links">
+                <li><a href="/" class="active">Home</a></li>
+                <li><a href="/upload">Upload Media</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>Your Family Collection</h1>
+            <p>Browse and search through your precious memories</p>
+        </div>
+
+        <div class="controls">
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-number" id="totalCount">0</span>
+                    <span>Total Items</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="photoCount">0</span>
+                    <span>Photos</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="videoCount">0</span>
+                    <span>Videos</span>
+                </div>
+            </div>
+
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search for family members or browse all media...">
+            
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">All Media</button>
+                <button class="filter-tab" data-filter="photo">Photos Only</button>
+                <button class="filter-tab" data-filter="video">Videos Only</button>
+            </div>
+        </div>
+
+        <div id="mediaContainer" class="media-grid">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading your memories...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for full-screen viewing -->
+    <div id="modal" class="modal">
+        <button class="close-btn" id="closeModal">×</button>
+        <div class="modal-content">
+            <img id="modalMedia" class="modal-media" src="" alt="">
+            <div class="modal-controls">
+                <button class="modal-btn" id="downloadBtn" title="Download">⬇️</button>
+                <button class="modal-btn" id="deleteBtn" title="Delete">🗑️</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class FamilyMediaHome {
+            constructor() {
+                this.mediaData = [];
+                this.currentFilter = 'all';
+                this.currentSearch = '';
+                this.currentMediaId = null;
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadMedia();
+            }
+
+            setupEventListeners() {
+                // Search functionality
+                document.getElementById('searchInput').addEventListener('input', (e) => {
+                    this.currentSearch = e.target.value;
+                    this.loadMedia();
+                });
+
+                // Filter tabs
+                document.querySelectorAll('.filter-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentFilter = e.target.dataset.filter;
+                        this.loadMedia();
+                    });
+                });
+
+                // Modal controls
+                document.getElementById('closeModal').addEventListener('click', () => {
+                    this.closeModal();
+                });
+
+                document.getElementById('modal').addEventListener('click', (e) => {
+                    if (e.target.id === 'modal') {
+                        this.closeModal();
+                    }
+                });
+
+                document.getElementById('downloadBtn').addEventListener('click', () => {
+                    this.downloadCurrentMedia();
+                });
+
+                document.getElementById('deleteBtn').addEventListener('click', () => {
+                    this.deleteCurrentMedia();
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.closeModal();
+                    }
+                });
+            }
+
+            async loadMedia() {
+                try {
+                    const params = new URLSearchParams();
+                    if (this.currentSearch) params.append('search', this.currentSearch);
+                    if (this.currentFilter !== 'all') params.append('type', this.currentFilter);
+
+                    const response = await fetch(`/api/media?${params}`);
+                    const data = await response.json();
+                    
+                    this.mediaData = data;
+                    this.updateStats();
+                    this.renderMedia();
+                } catch (error) {
+                    console.error('Error loading media:', error);
+                    this.showError('Failed to load media. Please try again.');
+                }
+            }
+
+            updateStats() {
+                const totalCount = this.mediaData.length;
+                const photoCount = this.mediaData.filter(item => item.type === 'photo').length;
+                const videoCount = this.mediaData.filter(item => item.type === 'video').length;
+
+                document.getElementById('totalCount').textContent = totalCount;
+                document.getElementById('photoCount').textContent = photoCount;
+                document.getElementById('videoCount').textContent = videoCount;
+            }
+
+            renderMedia() {
+                const container = document.getElementById('mediaContainer');
+
+                if (this.mediaData.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📷</div>
+                            <h3>No media found</h3>
+                            <p>${this.currentSearch ? 'Try a different search term' : 'Start by uploading some family photos or videos'}</p>
+                            <a href="/upload" class="upload-cta">Upload Your First Media</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.mediaData.map(item => `
+                    <div class="media-card" onclick="familyHome.openModal(${item.id})">
+                        ${item.type === 'video' ? '<div class="video-indicator">🎥 Video</div>' : ''}
+                        ${item.type === 'photo' 
+                            ? `<img src="${item.filePath}" alt="${item.originalName}" class="media-preview">`
+                            : `<video src="${item.filePath}" class="media-preview" muted preload="metadata"></video>`
+                        }
+                        <div class="media-info">
+                            <div class="media-title">${item.originalName}</div>
+                            <div class="media-date">📅 ${new Date(item.uploadDate).toLocaleDateString()}</div>
+                            <div class="media-tags">
+                                ${item.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            openModal(mediaId) {
+                const media = this.mediaData.find(item => item.id === mediaId);
+                if (!media) return;
+
+                this.currentMediaId = mediaId;
+                const modal = document.getElementById('modal');
+                const modalMedia = document.getElementById('modalMedia');
+
+                if (media.type === 'photo') {
+                    modalMedia.src = media.filePath;
+                    modalMedia.style.display = 'block';
+                    
+                    // Remove any existing video
+                    const existingVideo = modal.querySelector('video:not(#modalMedia)');
+                    if (existingVideo) existingVideo.remove();
+                } else {
+                    // For videos, create a video element
+                    modalMedia.style.display = 'none';
+                    
+                    // Remove existing video first
+                    const existingVideo = modal.querySelector('video:not(#modalMedia)');
+                    if (existingVideo) existingVideo.remove();
+                    
+                    const videoElement = document.createElement('video');
+                    videoElement.src = media.filePath;
+                    videoElement.controls = true;
+                    videoElement.className = 'modal-media';
+                    videoElement.autoplay = true;
+                    
+                    const modalContent = document.querySelector('.modal-content');
+                    modalContent.appendChild(videoElement);
+                }
+
+                modal.classList.add('active');
+            }
+
+            closeModal() {
+                const modal = document.getElementById('modal');
+                modal.classList.remove('active');
+                
+                // Clean up video element if exists
+                const video = modal.querySelector('video:not(#modalMedia)');
+                if (video) {
+                    video.pause();
+                    video.remove();
+                }
+                
+                this.currentMediaId = null;
+            }
+
+            downloadCurrentMedia() {
+                if (!this.currentMediaId) return;
+                
+                const media = this.mediaData.find(item => item.id === this.currentMediaId);
+                if (!media) return;
+
+                const link = document.createElement('a');
+                link.href = media.filePath;
+                link.download = media.originalName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            async deleteCurrentMedia() {
+                if (!this.currentMediaId) return;
+                
+                if (!confirm('Are you sure you want to delete this media? This action cannot be undone.')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/media/${this.currentMediaId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        this.closeModal();
+                        this.loadMedia(); // Refresh the media list
+                        this.showSuccess('Media deleted successfully');
+                    } else {
+                        throw new Error('Failed to delete media');
+                    }
+                } catch (error) {
+                    console.error('Error deleting media:', error);
+                    this.showError('Failed to delete media. Please try again.');
+                }
+            }
+
+            showError(message) {
+                // Simple error notification - you could enhance this
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed; top: 20px; right: 20px; z-index: 10000;
+                    background: #ff4757; color: white; padding: 15px 20px;
+                    border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 5000);
+            }
+
+            showSuccess(message) {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed; top: 20px; right: 20px; z-index: 10000;
+                    background: #2ed573; color: white; padding: 15px 20px;
+                    border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            }
+        }
+
+        // Initialize the application
+        const familyHome = new FamilyMediaHome();
+    </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "name": "bailey-bunch-media",
   "builds": [
     {
       "src": "index.js",
@@ -19,10 +20,5 @@
       "src": "/(.*)",
       "dest": "/index.js"
     }
-  ],
-  "functions": {
-    "index.js": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }

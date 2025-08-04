@@ -444,7 +444,7 @@
             <img id="modalMedia" class="modal-media" src="" alt="">
             <div class="modal-controls">
                 <button class="modal-btn" id="downloadBtn" title="Download">⬇️</button>
-                <button class="modal-btn" id="deleteBtn" title="Delete">🗑️</button>
+                <button class="modal-btn" id="deleteBtn" title="Delete" style="display: none;">🗑️</button>
             </div>
         </div>
     </div>
@@ -457,6 +457,7 @@
                 this.currentSearch = '';
                 this.currentMediaId = null;
                 this.authToken = localStorage.getItem('familyAuth');
+                this.userRole = localStorage.getItem('userRole');
                 this.init();
             }
 
@@ -468,7 +469,25 @@
                 }
                 
                 this.setupEventListeners();
+                this.setupRoleBasedUI();
                 this.loadMedia();
+            }
+
+            setupRoleBasedUI() {
+                // Hide/show admin features based on role
+                if (this.userRole !== 'admin') {
+                    // Hide upload link for family users
+                    const uploadLink = document.querySelector('a[href="/upload"]');
+                    if (uploadLink) {
+                        uploadLink.style.display = 'none';
+                    }
+                    
+                    // Hide sync button for family users
+                    const syncBtn = document.getElementById('syncBtn');
+                    if (syncBtn) {
+                        syncBtn.style.display = 'none';
+                    }
+                }
             }
 
             setupEventListeners() {
@@ -630,6 +649,14 @@
                 this.currentMediaId = mediaId;
                 const modal = document.getElementById('modal');
                 const modalMedia = document.getElementById('modalMedia');
+                const deleteBtn = document.getElementById('deleteBtn');
+
+                // Show delete button only for admin users
+                if (this.userRole === 'admin') {
+                    deleteBtn.style.display = 'block';
+                } else {
+                    deleteBtn.style.display = 'none';
+                }
 
                 if (media.type === 'photo') {
                     modalMedia.src = media.filePath;
@@ -754,6 +781,7 @@
 
             logout() {
                 localStorage.removeItem('familyAuth');
+                localStorage.removeItem('userRole');
                 window.location.href = '/login.html';
             }
         }

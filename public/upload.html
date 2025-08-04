@@ -458,6 +458,7 @@
             <ul class="nav-links">
                 <li><a href="/">Home</a></li>
                 <li><a href="/upload" class="active">Upload Media</a></li>
+                <li><a href="#" onclick="familyUpload.logout()" style="color: #ff4757;">Logout</a></li>
             </ul>
         </div>
     </nav>
@@ -563,10 +564,25 @@
                 this.selectedFiles = [];
                 this.photoFiles = [];
                 this.videoFiles = [];
+                this.authToken = localStorage.getItem('familyAuth');
+                this.userRole = localStorage.getItem('userRole');
                 this.init();
             }
 
             init() {
+                // Check authentication and admin access
+                if (!this.authToken) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
+                if (this.userRole !== 'admin') {
+                    // Redirect family users back to home
+                    alert('Upload access is restricted to administrators.');
+                    window.location.href = '/';
+                    return;
+                }
+                
                 this.setupEventListeners();
             }
 
@@ -761,64 +777,57 @@
                 uploadBtn.innerHTML = '<span>⏳</span> Uploading...';
 
                 try {
+                    // Check file sizes and decide upload method
+                    const largeFiles = this.selectedFiles.filter(file => file.size > 50 * 1024 * 1024); // 50MB+
+                    const smallFiles = this.selectedFiles.filter(file => file.size <= 50 * 1024 * 1024);
+
                     let completedUploads = 0;
                     const totalFiles = this.selectedFiles.length;
 
-                    for (const file of this.selectedFiles) {
-                        // Step 1: Get presigned URL for direct B2 upload
-                        const urlResponse = await fetch('/api/get-upload-url', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                filename: file.name,
-                                contentType: file.type,
-                                fileSize: file.size
-                            })
+                    // Upload small files through server (traditional way)
+                    if (smallFiles.length > 0) {
+                        const formData = new FormData();
+                        smallFiles.forEach(file => {
+                            formData.append('media', file);
                         });
+                        formData.append('tags', tags);
 
-                        if (!urlResponse.ok) {
-                            throw new Error('Failed to get upload URL');
-                        }
-
-                        const urlData = await urlResponse.json();
-
-                        // Step 2: Upload directly to B2 (bypasses Vercel completely)
-                        const uploadResponse = await fetch(urlData.uploadUrl, {
-                            method: 'PUT',
-                            body: file,
+                        const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData,
                             headers: {
-                                'Content-Type': file.type
+                                'Authorization': `Bearer ${this.authToken}`
                             }
                         });
 
-                        if (!uploadResponse.ok) {
+                        if (!response.ok) {
+                            throw new Error('Failed to upload small files');
+                        }
+
+                        completedUploads += smallFiles.length;
+                        const progress = Math.round((completedUploads / totalFiles) * 100);
+                        progressFill.style.width = progress + '%';
+                        progressText.textContent = `Uploading... ${progress}% (${completedUploads}/${totalFiles})`;
+                    }
+
+                    // Upload large files through server with chunked approach
+                    for (const file of largeFiles) {
+                        const formData = new FormData();
+                        formData.append('media', file);
+                        formData.append('tags', tags);
+
+                        const response = await fetch('/api/upload-large', {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'Authorization': `Bearer ${this.authToken}`
+                            }
+                        });
+
+                        if (!response.ok) {
                             throw new Error(`Failed to upload ${file.name}`);
                         }
 
-                        // Step 3: Confirm upload and save metadata
-                        const confirmResponse = await fetch('/api/confirm-upload', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                fileKey: urlData.fileKey,
-                                originalName: file.name,
-                                fileUrl: urlData.fileUrl,
-                                filename: urlData.filename,
-                                contentType: file.type,
-                                fileSize: file.size,
-                                tags: tags
-                            })
-                        });
-
-                        if (!confirmResponse.ok) {
-                            throw new Error(`Failed to confirm upload for ${file.name}`);
-                        }
-
-                        // Update progress
                         completedUploads++;
                         const progress = Math.round((completedUploads / totalFiles) * 100);
                         progressFill.style.width = progress + '%';
@@ -870,6 +879,12 @@
                 const sizes = ['Bytes', 'KB', 'MB', 'GB'];
                 const i = Math.floor(Math.log(bytes) / Math.log(k));
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            logout() {
+                localStorage.removeItem('familyAuth');
+                localStorage.removeItem('userRole');
+                window.location.href = '/login.html';
             }
         }
 

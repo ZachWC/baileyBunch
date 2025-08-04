@@ -16,7 +16,8 @@ const b2KeyId = process.env.B2_KEY_ID;
 const b2ApplicationKey = process.env.B2_APPLICATION_KEY;
 const b2BucketName = process.env.B2_BUCKET_NAME;
 const b2Endpoint = process.env.B2_ENDPOINT;
-const sitePassword = process.env.SITE_PASSWORD || 'family2024'; // Default password
+const familyPassword = process.env.FAMILY_PASSWORD || 'family2024'; // Family viewing password
+const adminPassword = process.env.ADMIN_PASSWORD || 'admin2024'; // Your admin password
 
 // Initialize Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -37,14 +38,29 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(express.static('public'));
 
-// Simple authentication middleware
-const authenticatePassword = (req, res, next) => {
+// Authentication middleware
+const authenticateFamily = (req, res, next) => {
     const authToken = req.headers.authorization || req.query.auth;
+    const token = authToken ? authToken.replace('Bearer ', '') : '';
     
-    if (authToken === `Bearer ${sitePassword}` || authToken === sitePassword) {
+    if (token === familyPassword || token === adminPassword) {
+        req.userRole = token === adminPassword ? 'admin' : 'family';
         next();
     } else {
         res.status(401).json({ error: 'Authentication required' });
+    }
+};
+
+// Admin-only middleware
+const authenticateAdmin = (req, res, next) => {
+    const authToken = req.headers.authorization || req.query.auth;
+    const token = authToken ? authToken.replace('Bearer ', '') : '';
+    
+    if (token === adminPassword) {
+        req.userRole = 'admin';
+        next();
+    } else {
+        res.status(403).json({ error: 'Admin access required' });
     }
 };
 
@@ -73,11 +89,19 @@ const upload = multer({
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
     
-    if (password === sitePassword) {
+    if (password === adminPassword) {
         res.json({ 
             success: true, 
-            token: sitePassword,
-            message: 'Login successful' 
+            token: adminPassword,
+            role: 'admin',
+            message: 'Admin login successful' 
+        });
+    } else if (password === familyPassword) {
+        res.json({ 
+            success: true, 
+            token: familyPassword,
+            role: 'family',
+            message: 'Family login successful' 
         });
     } else {
         res.status(401).json({ 
@@ -87,9 +111,12 @@ app.post('/api/login', (req, res) => {
     }
 });
 
-// Check if authenticated
-app.get('/api/check-auth', authenticatePassword, (req, res) => {
-    res.json({ authenticated: true });
+// Check authentication and return user role
+app.get('/api/check-auth', authenticateFamily, (req, res) => {
+    res.json({ 
+        authenticated: true, 
+        role: req.userRole 
+    });
 });
 
 // Get presigned URL for direct B2 upload (simplified for better CORS compatibility)
@@ -131,8 +158,8 @@ app.post('/api/get-upload-url', async (req, res) => {
     }
 });
 
-// Sync manually uploaded files from B2 to database (protected)
-app.post('/api/sync-b2-files', authenticatePassword, async (req, res) => {
+// Sync manually uploaded files from B2 to database (admin only)
+app.post('/api/sync-b2-files', authenticateAdmin, async (req, res) => {
     try {
         const { ListObjectsV2Command } = require('@aws-sdk/client-s3');
         
@@ -247,8 +274,8 @@ app.post('/api/confirm-upload', async (req, res) => {
     }
 });
 
-// Upload large files through server (protected)
-app.post('/api/upload-large', authenticatePassword, upload.array('media', 5), async (req, res) => {
+// Upload large files through server (admin only)
+app.post('/api/upload-large', authenticateAdmin, upload.array('media', 5), async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ error: 'No files uploaded' });
@@ -391,8 +418,8 @@ app.post('/api/upload', upload.array('media', 10), async (req, res) => {
     }
 });
 
-// Get all media (protected)
-app.get('/api/media', authenticatePassword, async (req, res) => {
+// Get all media (family can view, admin can view)
+app.get('/api/media', authenticateFamily, async (req, res) => {
     try {
         const { search, type } = req.query;
         
@@ -434,8 +461,8 @@ app.get('/api/media', authenticatePassword, async (req, res) => {
     }
 });
 
-// Delete media (protected)
-app.delete('/api/media/:id', authenticatePassword, async (req, res) => {
+// Delete media (admin only)
+app.delete('/api/media/:id', authenticateAdmin, async (req, res) => {
     try {
         const mediaId = req.params.id;
         

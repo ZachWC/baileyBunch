@@ -392,6 +392,7 @@
             <ul class="nav-links">
                 <li><a href="/" class="active">Home</a></li>
                 <li><a href="/upload">Upload Media</a></li>
+                <li><a href="#" onclick="familyHome.logout()" style="color: #ff4757;">Logout</a></li>
             </ul>
         </div>
     </nav>
@@ -455,10 +456,17 @@
                 this.currentFilter = 'all';
                 this.currentSearch = '';
                 this.currentMediaId = null;
+                this.authToken = localStorage.getItem('familyAuth');
                 this.init();
             }
 
             init() {
+                // Check authentication first
+                if (!this.authToken) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
                 this.setupEventListeners();
                 this.loadMedia();
             }
@@ -508,8 +516,17 @@
                     
                     try {
                         const response = await fetch('/api/sync-b2-files', {
-                            method: 'POST'
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${this.authToken}`
+                            }
                         });
+                        
+                        if (response.status === 401) {
+                            localStorage.removeItem('familyAuth');
+                            window.location.href = '/login.html';
+                            return;
+                        }
                         
                         const result = await response.json();
                         
@@ -540,7 +557,18 @@
                     if (this.currentSearch) params.append('search', this.currentSearch);
                     if (this.currentFilter !== 'all') params.append('type', this.currentFilter);
 
-                    const response = await fetch(`/api/media?${params}`);
+                    const response = await fetch(`/api/media?${params}`, {
+                        headers: {
+                            'Authorization': `Bearer ${this.authToken}`
+                        }
+                    });
+                    
+                    if (response.status === 401) {
+                        localStorage.removeItem('familyAuth');
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    
                     const data = await response.json();
                     
                     this.mediaData = data;
@@ -668,8 +696,17 @@
 
                 try {
                     const response = await fetch(`/api/media/${this.currentMediaId}`, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${this.authToken}`
+                        }
                     });
+                    
+                    if (response.status === 401) {
+                        localStorage.removeItem('familyAuth');
+                        window.location.href = '/login.html';
+                        return;
+                    }
 
                     if (response.ok) {
                         this.closeModal();
@@ -713,6 +750,11 @@
                 setTimeout(() => {
                     notification.remove();
                 }, 3000);
+            }
+
+            logout() {
+                localStorage.removeItem('familyAuth');
+                window.location.href = '/login.html';
             }
         }
 

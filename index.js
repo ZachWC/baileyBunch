@@ -16,6 +16,7 @@ const b2KeyId = process.env.B2_KEY_ID;
 const b2ApplicationKey = process.env.B2_APPLICATION_KEY;
 const b2BucketName = process.env.B2_BUCKET_NAME;
 const b2Endpoint = process.env.B2_ENDPOINT;
+const sitePassword = process.env.SITE_PASSWORD || 'family2024'; // Default password
 
 // Initialize Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -35,6 +36,17 @@ app.use(cors());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(express.static('public'));
+
+// Simple authentication middleware
+const authenticatePassword = (req, res, next) => {
+    const authToken = req.headers.authorization || req.query.auth;
+    
+    if (authToken === `Bearer ${sitePassword}` || authToken === sitePassword) {
+        next();
+    } else {
+        res.status(401).json({ error: 'Authentication required' });
+    }
+};
 
 // Configure multer for memory storage (with increased limits for large files)
 const upload = multer({
@@ -56,6 +68,29 @@ const upload = multer({
 });
 
 // API Routes
+
+// Login endpoint
+app.post('/api/login', (req, res) => {
+    const { password } = req.body;
+    
+    if (password === sitePassword) {
+        res.json({ 
+            success: true, 
+            token: sitePassword,
+            message: 'Login successful' 
+        });
+    } else {
+        res.status(401).json({ 
+            success: false, 
+            message: 'Invalid password' 
+        });
+    }
+});
+
+// Check if authenticated
+app.get('/api/check-auth', authenticatePassword, (req, res) => {
+    res.json({ authenticated: true });
+});
 
 // Get presigned URL for direct B2 upload (simplified for better CORS compatibility)
 app.post('/api/get-upload-url', async (req, res) => {
@@ -96,8 +131,8 @@ app.post('/api/get-upload-url', async (req, res) => {
     }
 });
 
-// Sync manually uploaded files from B2 to database
-app.post('/api/sync-b2-files', async (req, res) => {
+// Sync manually uploaded files from B2 to database (protected)
+app.post('/api/sync-b2-files', authenticatePassword, async (req, res) => {
     try {
         const { ListObjectsV2Command } = require('@aws-sdk/client-s3');
         
@@ -212,8 +247,8 @@ app.post('/api/confirm-upload', async (req, res) => {
     }
 });
 
-// Upload large files through server (fallback for CORS issues)
-app.post('/api/upload-large', upload.array('media', 5), async (req, res) => {
+// Upload large files through server (protected)
+app.post('/api/upload-large', authenticatePassword, upload.array('media', 5), async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ error: 'No files uploaded' });
@@ -356,8 +391,8 @@ app.post('/api/upload', upload.array('media', 10), async (req, res) => {
     }
 });
 
-// Get all media
-app.get('/api/media', async (req, res) => {
+// Get all media (protected)
+app.get('/api/media', authenticatePassword, async (req, res) => {
     try {
         const { search, type } = req.query;
         
@@ -399,8 +434,8 @@ app.get('/api/media', async (req, res) => {
     }
 });
 
-// Delete media
-app.delete('/api/media/:id', async (req, res) => {
+// Delete media (protected)
+app.delete('/api/media/:id', authenticatePassword, async (req, res) => {
     try {
         const mediaId = req.params.id;
         
@@ -466,6 +501,10 @@ app.get('/', (req, res) => {
 
 app.get('/upload', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'upload.html'));
+});
+
+app.get('/login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 // Error handling middleware

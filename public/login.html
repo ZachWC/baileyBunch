@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Memories - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .login-header {
+            margin-bottom: 40px;
+        }
+
+        .login-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .login-form {
+            margin-bottom: 30px;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .login-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .error-message {
+            background: #ff4757;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .family-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 40px 20px;
+            }
+            
+            .login-header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <span class="family-icon">🏠</span>
+            <h1>Family Memories</h1>
+            <p>Enter password to access your family collection</p>
+        </div>
+
+        <form class="login-form" id="loginForm">
+            <input 
+                type="password" 
+                id="passwordInput" 
+                class="password-input" 
+                placeholder="Enter family password"
+                required
+            >
+            <button type="submit" class="login-btn" id="loginBtn">
+                Access Family Photos
+            </button>
+        </form>
+
+        <div class="error-message" id="errorMessage">
+            Invalid password. Please try again.
+        </div>
+    </div>
+
+    <script>
+        class FamilyLogin {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                // Check if already logged in
+                if (this.isLoggedIn()) {
+                    window.location.href = '/';
+                    return;
+                }
+
+                this.setupEventListeners();
+                document.getElementById('passwordInput').focus();
+            }
+
+            setupEventListeners() {
+                const form = document.getElementById('loginForm');
+                const passwordInput = document.getElementById('passwordInput');
+
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.login(passwordInput.value);
+                });
+
+                // Hide error message when typing
+                passwordInput.addEventListener('input', () => {
+                    this.hideError();
+                });
+            }
+
+            async login(password) {
+                const loginBtn = document.getElementById('loginBtn');
+                const originalText = loginBtn.textContent;
+                
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Checking...';
+
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ password })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Store authentication token
+                        localStorage.setItem('familyAuth', result.token);
+                        
+                        // Redirect to main site
+                        window.location.href = '/';
+                    } else {
+                        this.showError();
+                        document.getElementById('passwordInput').value = '';
+                        document.getElementById('passwordInput').focus();
+                    }
+
+                } catch (error) {
+                    console.error('Login error:', error);
+                    this.showError();
+                } finally {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = originalText;
+                }
+            }
+
+            showError() {
+                const errorMessage = document.getElementById('errorMessage');
+                errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 5000);
+            }
+
+            hideError() {
+                const errorMessage = document.getElementById('errorMessage');
+                errorMessage.style.display = 'none';
+            }
+
+            isLoggedIn() {
+                return localStorage.getItem('familyAuth') !== null;
+            }
+        }
+
+        // Initialize login page
+        new FamilyLogin();
+    </script>
+</body>
+</html>

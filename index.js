@@ -48,6 +48,7 @@ const upload = multer({
             cb(null, `uploads/${timestamp}_${name}${ext}`);
         },
         contentType: multerS3.AUTO_CONTENT_TYPE,
+        // Remove ACL for Backblaze B2 compatibility
     }),
     limits: {
         fileSize: 100 * 1024 * 1024 // 100MB limit

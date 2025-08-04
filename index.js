@@ -96,7 +96,78 @@ app.post('/api/get-upload-url', async (req, res) => {
     }
 });
 
-// Confirm upload and save metadata
+// Sync manually uploaded files from B2 to database
+app.post('/api/sync-b2-files', async (req, res) => {
+    try {
+        const { ListObjectsV2Command } = require('@aws-sdk/client-s3');
+        
+        // Get all files from B2 bucket
+        const listCommand = new ListObjectsV2Command({
+            Bucket: b2BucketName,
+            Prefix: 'uploads/'
+        });
+        
+        const b2Response = await s3Client.send(listCommand);
+        const b2Files = b2Response.Contents || [];
+        
+        // Get existing files from database  
+        const { data: existingFiles, error: dbError } = await supabase
+            .from('media')
+            .select('file_key');
+            
+        if (dbError) {
+            throw new Error('Database error: ' + dbError.message);
+        }
+        
+        const existingKeys = new Set(existingFiles.map(f => f.file_key));
+        
+        // Find files in B2 that aren't in database
+        const newFiles = b2Files.filter(file => !existingKeys.has(file.Key));
+        
+        const addedFiles = [];
+        
+        // Add new files to database
+        for (const file of newFiles) {
+            const filename = file.Key.split('/').pop();
+            const originalName = filename.replace(/^\d+_/, ''); // Remove timestamp prefix
+            const ext = path.extname(originalName).toLowerCase();
+            const mediaType = ['.jpg', '.jpeg', '.png', '.gif'].includes(ext) ? 'photo' : 'video';
+            const fileUrl = `https://${b2Endpoint}/${b2BucketName}/${file.Key}`;
+            
+            const { data, error } = await supabase
+                .from('media')
+                .insert([
+                    {
+                        filename: filename,
+                        original_name: originalName,
+                        file_url: fileUrl,
+                        file_key: file.Key,
+                        type: mediaType,
+                        tags: 'Manual Upload', // Default tag for manual uploads
+                        file_size: file.Size
+                    }
+                ])
+                .select();
+                
+            if (!error && data) {
+                addedFiles.push({
+                    filename: originalName,
+                    type: mediaType,
+                    size: file.Size
+                });
+            }
+        }
+        
+        res.json({
+            message: `Found and added ${addedFiles.length} new files`,
+            addedFiles: addedFiles
+        });
+        
+    } catch (error) {
+        console.error('Sync error:', error);
+        res.status(500).json({ error: 'Sync failed: ' + error.message });
+    }
+});
 app.post('/api/confirm-upload', async (req, res) => {
     try {
         const { fileKey, originalName, fileUrl, filename, contentType, fileSize, tags } = req.body;

@@ -424,6 +424,7 @@
                 <button class="filter-tab active" data-filter="all">All Media</button>
                 <button class="filter-tab" data-filter="photo">Photos Only</button>
                 <button class="filter-tab" data-filter="video">Videos Only</button>
+                <button class="filter-tab" id="syncBtn" style="margin-left: auto; background: linear-gradient(135deg, #28a745, #20c997); color: white;">🔄 Sync B2 Files</button>
             </div>
         </div>
 
@@ -498,7 +499,34 @@
                     this.deleteCurrentMedia();
                 });
 
-                // Keyboard shortcuts
+                // Sync B2 files button
+                document.getElementById('syncBtn').addEventListener('click', async () => {
+                    const btn = document.getElementById('syncBtn');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '⏳ Syncing...';
+                    btn.disabled = true;
+                    
+                    try {
+                        const response = await fetch('/api/sync-b2-files', {
+                            method: 'POST'
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            this.showSuccess(`Sync complete! Added ${result.addedFiles.length} new files`);
+                            this.loadMedia(); // Refresh the media display
+                        } else {
+                            throw new Error(result.error);
+                        }
+                    } catch (error) {
+                        console.error('Sync error:', error);
+                        this.showError('Sync failed: ' + error.message);
+                    } finally {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                });
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') {
                         this.closeModal();

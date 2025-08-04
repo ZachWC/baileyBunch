@@ -4,8 +4,6 @@ const path = require('path');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const multerS3 = require('multer-s3');
 
 const app = express();
 const PORT = process.env.PORT || 3000;

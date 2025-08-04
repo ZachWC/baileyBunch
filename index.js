@@ -4,6 +4,7 @@ const path = require('path');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,7 +32,8 @@ const s3Client = new S3Client({
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(express.static('public'));
 
 // Configure multer for memory storage, then upload manually to B2
@@ -54,6 +56,89 @@ const upload = multer({
 });
 
 // API Routes
+
+// Get presigned URL for direct B2 upload
+app.post('/api/get-upload-url', async (req, res) => {
+    try {
+        const { filename, contentType, fileSize } = req.body;
+        
+        // Generate unique filename
+        const timestamp = Date.now();
+        const ext = path.extname(filename);
+        const name = path.basename(filename, ext);
+        const fileKey = `uploads/${timestamp}_${name}${ext}`;
+        
+        // Create presigned URL for direct upload to B2
+        const command = new PutObjectCommand({
+            Bucket: b2BucketName,
+            Key: fileKey,
+            ContentType: contentType,
+        });
+        
+        const signedUrl = await getSignedUrl(s3Client, command, { 
+            expiresIn: 3600 // 1 hour to complete upload
+        });
+        
+        // Construct the final file URL
+        const fileUrl = `https://${b2Endpoint}/${b2BucketName}/${fileKey}`;
+        
+        res.json({
+            uploadUrl: signedUrl,
+            fileKey: fileKey,
+            fileUrl: fileUrl,
+            filename: `${timestamp}_${name}${ext}`
+        });
+        
+    } catch (error) {
+        console.error('Presigned URL error:', error);
+        res.status(500).json({ error: 'Failed to generate upload URL' });
+    }
+});
+
+// Confirm upload and save metadata
+app.post('/api/confirm-upload', async (req, res) => {
+    try {
+        const { fileKey, originalName, fileUrl, filename, contentType, fileSize, tags } = req.body;
+        
+        const mediaType = contentType.startsWith('image/') ? 'photo' : 'video';
+        
+        // Save metadata to Supabase
+        const { data, error } = await supabase
+            .from('media')
+            .insert([
+                {
+                    filename: filename,
+                    original_name: originalName,
+                    file_url: fileUrl,
+                    file_key: fileKey,
+                    type: mediaType,
+                    tags: tags || '',
+                    file_size: fileSize
+                }
+            ])
+            .select();
+
+        if (error) {
+            console.error('Database error:', error);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        res.json({
+            message: 'Upload confirmed successfully',
+            media: {
+                id: data[0].id,
+                filename: originalName,
+                type: mediaType,
+                url: fileUrl,
+                tags: tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : []
+            }
+        });
+        
+    } catch (error) {
+        console.error('Confirm upload error:', error);
+        res.status(500).json({ error: 'Failed to confirm upload' });
+    }
+});
 
 // Upload media files
 app.post('/api/upload', upload.array('media', 10), async (req, res) => {

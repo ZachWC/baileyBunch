@@ -750,18 +750,7 @@
                     return;
                 }
 
-                const formData = new FormData();
                 const tags = document.getElementById('tagInput').value;
-
-                // Add all files to FormData
-                this.selectedFiles.forEach(file => {
-                    formData.append('media', file);
-                });
-
-                // Add tags
-                formData.append('tags', tags);
-
-                // Show progress
                 const progressSection = document.getElementById('progressSection');
                 const progressFill = document.getElementById('progressFill');
                 const progressText = document.getElementById('progressText');
@@ -772,27 +761,75 @@
                 uploadBtn.innerHTML = '<span>⏳</span> Uploading...';
 
                 try {
-                    const response = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
+                    let completedUploads = 0;
+                    const totalFiles = this.selectedFiles.length;
 
-                    // Simulate progress for better UX
-                    for (let i = 0; i <= 100; i += 10) {
-                        progressFill.style.width = i + '%';
-                        progressText.textContent = `Uploading... ${i}%`;
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                    for (const file of this.selectedFiles) {
+                        // Step 1: Get presigned URL for direct B2 upload
+                        const urlResponse = await fetch('/api/get-upload-url', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                filename: file.name,
+                                contentType: file.type,
+                                fileSize: file.size
+                            })
+                        });
+
+                        if (!urlResponse.ok) {
+                            throw new Error('Failed to get upload URL');
+                        }
+
+                        const urlData = await urlResponse.json();
+
+                        // Step 2: Upload directly to B2 (bypasses Vercel completely)
+                        const uploadResponse = await fetch(urlData.uploadUrl, {
+                            method: 'PUT',
+                            body: file,
+                            headers: {
+                                'Content-Type': file.type
+                            }
+                        });
+
+                        if (!uploadResponse.ok) {
+                            throw new Error(`Failed to upload ${file.name}`);
+                        }
+
+                        // Step 3: Confirm upload and save metadata
+                        const confirmResponse = await fetch('/api/confirm-upload', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                fileKey: urlData.fileKey,
+                                originalName: file.name,
+                                fileUrl: urlData.fileUrl,
+                                filename: urlData.filename,
+                                contentType: file.type,
+                                fileSize: file.size,
+                                tags: tags
+                            })
+                        });
+
+                        if (!confirmResponse.ok) {
+                            throw new Error(`Failed to confirm upload for ${file.name}`);
+                        }
+
+                        // Update progress
+                        completedUploads++;
+                        const progress = Math.round((completedUploads / totalFiles) * 100);
+                        progressFill.style.width = progress + '%';
+                        progressText.textContent = `Uploading... ${progress}% (${completedUploads}/${totalFiles})`;
                     }
 
-                    if (response.ok) {
-                        const result = await response.json();
-                        this.showSuccess();
-                    } else {
-                        throw new Error('Upload failed');
-                    }
+                    this.showSuccess();
+                    
                 } catch (error) {
                     console.error('Upload error:', error);
-                    this.showError('Upload failed. Please try again.');
+                    this.showError('Upload failed: ' + error.message);
                     uploadBtn.disabled = false;
                     uploadBtn.innerHTML = '<span>📤</span> Upload Files';
                     progressSection.classList.remove('active');

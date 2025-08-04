@@ -36,20 +36,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Configure multer for B2 uploads
+// Configure multer for memory storage, then upload manually to B2
 const upload = multer({
-    storage: multerS3({
-        s3: s3Client,
-        bucket: b2BucketName,
-        key: function (req, file, cb) {
-            const timestamp = Date.now();
-            const ext = path.extname(file.originalname);
-            const name = path.basename(file.originalname, ext);
-            cb(null, `uploads/${timestamp}_${name}${ext}`);
-        },
-        contentType: multerS3.AUTO_CONTENT_TYPE,
-        // Remove ACL for Backblaze B2 compatibility
-    }),
+    storage: multer.memoryStorage(),
     limits: {
         fileSize: 100 * 1024 * 1024 // 100MB limit
     },
@@ -81,15 +70,34 @@ app.post('/api/upload', upload.array('media', 10), async (req, res) => {
         for (const file of req.files) {
             const mediaType = file.mimetype.startsWith('image/') ? 'photo' : 'video';
             
+            // Generate unique filename
+            const timestamp = Date.now();
+            const ext = path.extname(file.originalname);
+            const name = path.basename(file.originalname, ext);
+            const fileKey = `uploads/${timestamp}_${name}${ext}`;
+            
+            // Upload to Backblaze B2
+            const uploadParams = {
+                Bucket: b2BucketName,
+                Key: fileKey,
+                Body: file.buffer,
+                ContentType: file.mimetype,
+            };
+
+            const uploadResult = await s3Client.send(new PutObjectCommand(uploadParams));
+            
+            // Construct file URL
+            const fileUrl = `https://${b2Endpoint}/${b2BucketName}/${fileKey}`;
+            
             // Save metadata to Supabase
             const { data, error } = await supabase
                 .from('media')
                 .insert([
                     {
-                        filename: file.key.split('/').pop(),
+                        filename: `${timestamp}_${name}${ext}`,
                         original_name: file.originalname,
-                        file_url: file.location,
-                        file_key: file.key,
+                        file_url: fileUrl,
+                        file_key: fileKey,
                         type: mediaType,
                         tags: tags,
                         file_size: file.size
@@ -106,7 +114,7 @@ app.post('/api/upload', upload.array('media', 10), async (req, res) => {
                 id: data[0].id,
                 filename: file.originalname,
                 type: mediaType,
-                url: file.location,
+                url: fileUrl,
                 tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag)
             });
         }
@@ -118,7 +126,7 @@ app.post('/api/upload', upload.array('media', 10), async (req, res) => {
 
     } catch (error) {
         console.error('Upload error:', error);
-        res.status(500).json({ error: 'Upload failed' });
+        res.status(500).json({ error: 'Upload failed: ' + error.message });
     }
 });
 

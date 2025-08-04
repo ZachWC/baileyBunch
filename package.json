@@ -1,18 +1,21 @@
 {
   "name": "family-media-website",
   "version": "1.0.0",
-  "description": "Family media storage website with file uploads",
+  "description": "Family media storage website with cloud storage",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "build": "echo 'No build step required'"
+    "build": "echo 'Build complete'"
   },
   "dependencies": {
     "express": "^4.18.2",
     "multer": "^1.4.5-lts.1",
-    "sqlite3": "^5.1.6",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "@supabase/supabase-js": "^2.39.0",
+    "@aws-sdk/client-s3": "^3.454.0",
+    "@aws-sdk/s3-request-presigner": "^3.454.0",
+    "multer-s3": "^3.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

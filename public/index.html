@@ -134,7 +134,19 @@
             color: white;
         }
 
-        .filter-tab:hover {
+        .year-filter {
+            padding: 10px 15px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .year-filter:focus {
+            outline: none;
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
         }
@@ -425,6 +437,10 @@
                 <button class="filter-tab active" data-filter="all">All Media</button>
                 <button class="filter-tab" data-filter="photo">Photos Only</button>
                 <button class="filter-tab" data-filter="video">Videos Only</button>
+                <select id="yearFilter" class="year-filter">
+                    <option value="all">All Years</option>
+                    <option value="untagged">Untagged</option>
+                </select>
                 <button class="filter-tab" id="syncBtn" style="margin-left: auto; background: linear-gradient(135deg, #28a745, #20c997); color: white;">🔄 Sync B2 Files</button>
             </div>
         </div>
@@ -444,7 +460,21 @@
             <img id="modalMedia" class="modal-media" src="" alt="">
             <div class="modal-controls">
                 <button class="modal-btn" id="downloadBtn" title="Download">⬇️</button>
+                <button class="modal-btn" id="yearBtn" title="Tag Year" style="display: none;">📅</button>
                 <button class="modal-btn" id="deleteBtn" title="Delete" style="display: none;">🗑️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Year Tagging Modal -->
+    <div id="yearModal" class="modal">
+        <div class="modal-content" style="max-width: 400px; padding: 30px; background: white; border-radius: 20px;">
+            <h3 style="margin-bottom: 20px; color: #333;">Tag Year</h3>
+            <p style="margin-bottom: 15px; color: #666;">What year was this media filmed?</p>
+            <input type="number" id="yearInput" placeholder="Enter year (e.g., 2024)" min="1900" max="2030" style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; margin-bottom: 20px;">
+            <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                <button id="cancelYear" style="padding: 10px 20px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer;">Cancel</button>
+                <button id="confirmYear" style="padding: 10px 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer;">Tag Year</button>
             </div>
         </div>
     </div>
@@ -455,14 +485,15 @@
                 this.mediaData = [];
                 this.currentFilter = 'all';
                 this.currentSearch = '';
+                this.currentYear = 'all';
                 this.currentMediaId = null;
                 this.authToken = localStorage.getItem('familyAuth');
                 this.userRole = localStorage.getItem('userRole');
+                this.availableYears = new Set();
                 this.init();
             }
 
             init() {
-                // Check authentication first
                 if (!this.authToken) {
                     window.location.href = '/login.html';
                     return;
@@ -474,15 +505,12 @@
             }
 
             setupRoleBasedUI() {
-                // Hide/show admin features based on role
                 if (this.userRole !== 'admin') {
-                    // Hide upload link for family users
                     const uploadLink = document.querySelector('a[href="/upload"]');
                     if (uploadLink) {
                         uploadLink.style.display = 'none';
                     }
                     
-                    // Hide sync button for family users
                     const syncBtn = document.getElementById('syncBtn');
                     if (syncBtn) {
                         syncBtn.style.display = 'none';
@@ -491,13 +519,11 @@
             }
 
             setupEventListeners() {
-                // Search functionality
                 document.getElementById('searchInput').addEventListener('input', (e) => {
                     this.currentSearch = e.target.value;
                     this.loadMedia();
                 });
 
-                // Filter tabs
                 document.querySelectorAll('.filter-tab').forEach(tab => {
                     tab.addEventListener('click', (e) => {
                         document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
@@ -507,7 +533,11 @@
                     });
                 });
 
-                // Modal controls
+                document.getElementById('yearFilter').addEventListener('change', (e) => {
+                    this.currentYear = e.target.value;
+                    this.loadMedia();
+                });
+
                 document.getElementById('closeModal').addEventListener('click', () => {
                     this.closeModal();
                 });
@@ -526,7 +556,32 @@
                     this.deleteCurrentMedia();
                 });
 
-                // Sync B2 files button
+                document.getElementById('yearBtn').addEventListener('click', () => {
+                    this.showYearModal();
+                });
+
+                document.getElementById('cancelYear').addEventListener('click', () => {
+                    this.closeYearModal();
+                });
+
+                document.getElementById('confirmYear').addEventListener('click', () => {
+                    this.confirmYear();
+                });
+
+                document.getElementById('yearModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'yearModal') {
+                        this.closeYearModal();
+                    }
+                });
+
+                document.getElementById('yearInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        this.confirmYear();
+                    } else if (e.key === 'Escape') {
+                        this.closeYearModal();
+                    }
+                });
+
                 document.getElementById('syncBtn').addEventListener('click', async () => {
                     const btn = document.getElementById('syncBtn');
                     const originalText = btn.innerHTML;
@@ -551,7 +606,7 @@
                         
                         if (response.ok) {
                             this.showSuccess(`Sync complete! Added ${result.addedFiles.length} new files`);
-                            this.loadMedia(); // Refresh the media display
+                            this.loadMedia();
                         } else {
                             throw new Error(result.error);
                         }
@@ -563,6 +618,7 @@
                         btn.disabled = false;
                     }
                 });
+
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') {
                         this.closeModal();
@@ -575,6 +631,7 @@
                     const params = new URLSearchParams();
                     if (this.currentSearch) params.append('search', this.currentSearch);
                     if (this.currentFilter !== 'all') params.append('type', this.currentFilter);
+                    if (this.currentYear !== 'all') params.append('year', this.currentYear);
 
                     const response = await fetch(`/api/media?${params}`, {
                         headers: {
@@ -591,11 +648,41 @@
                     const data = await response.json();
                     
                     this.mediaData = data;
+                    this.updateAvailableYears();
                     this.updateStats();
                     this.renderMedia();
                 } catch (error) {
                     console.error('Error loading media:', error);
                     this.showError('Failed to load media. Please try again.');
+                }
+            }
+
+            updateAvailableYears() {
+                this.availableYears.clear();
+                this.mediaData.forEach(item => {
+                    if (item.year) {
+                        this.availableYears.add(item.year);
+                    }
+                });
+
+                const yearFilter = document.getElementById('yearFilter');
+                const currentValue = yearFilter.value;
+                
+                while (yearFilter.children.length > 2) {
+                    yearFilter.removeChild(yearFilter.lastChild);
+                }
+                
+                Array.from(this.availableYears)
+                    .sort((a, b) => b - a)
+                    .forEach(year => {
+                        const option = document.createElement('option');
+                        option.value = year;
+                        option.textContent = year.toString();
+                        yearFilter.appendChild(option);
+                    });
+                
+                if (Array.from(yearFilter.options).some(opt => opt.value === currentValue)) {
+                    yearFilter.value = currentValue;
                 }
             }
 
@@ -650,26 +737,25 @@
                 const modal = document.getElementById('modal');
                 const modalMedia = document.getElementById('modalMedia');
                 const deleteBtn = document.getElementById('deleteBtn');
+                const yearBtn = document.getElementById('yearBtn');
 
-                // Show delete button only for admin users
                 if (this.userRole === 'admin') {
                     deleteBtn.style.display = 'block';
+                    yearBtn.style.display = 'block';
                 } else {
                     deleteBtn.style.display = 'none';
+                    yearBtn.style.display = 'none';
                 }
 
                 if (media.type === 'photo') {
                     modalMedia.src = media.filePath;
                     modalMedia.style.display = 'block';
                     
-                    // Remove any existing video
                     const existingVideo = modal.querySelector('video:not(#modalMedia)');
                     if (existingVideo) existingVideo.remove();
                 } else {
-                    // For videos, create a video element
                     modalMedia.style.display = 'none';
                     
-                    // Remove existing video first
                     const existingVideo = modal.querySelector('video:not(#modalMedia)');
                     if (existingVideo) existingVideo.remove();
                     
@@ -690,7 +776,6 @@
                 const modal = document.getElementById('modal');
                 modal.classList.remove('active');
                 
-                // Clean up video element if exists
                 const video = modal.querySelector('video:not(#modalMedia)');
                 if (video) {
                     video.pause();
@@ -714,9 +799,83 @@
                 document.body.removeChild(link);
             }
 
-            async deleteCurrentMedia() {
+            showYearModal() {
                 if (!this.currentMediaId) return;
                 
+                const media = this.mediaData.find(item => item.id === this.currentMediaId);
+                if (!media) return;
+                
+                const yearModal = document.getElementById('yearModal');
+                const yearInput = document.getElementById('yearInput');
+                
+                yearInput.value = media.year || '';
+                yearModal.classList.add('active');
+                
+                setTimeout(() => {
+                    yearInput.focus();
+                    if (media.year) {
+                        yearInput.select();
+                    }
+                }, 100);
+            }
+
+            closeYearModal() {
+                const yearModal = document.getElementById('yearModal');
+                yearModal.classList.remove('active');
+            }
+
+            async confirmYear() {
+                const year = document.getElementById('yearInput').value.trim();
+                
+                if (!year || isNaN(year) || year < 1900 || year > new Date().getFullYear() + 1) {
+                    alert('Please enter a valid year (1900-' + (new Date().getFullYear() + 1) + ')');
+                    return;
+                }
+
+                const confirmBtn = document.getElementById('confirmYear');
+                const originalText = confirmBtn.textContent;
+                confirmBtn.textContent = 'Tagging...';
+                confirmBtn.disabled = true;
+
+                try {
+                    const response = await fetch(`/api/media/${this.currentMediaId}/year`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.authToken}`
+                        },
+                        body: JSON.stringify({
+                            year: parseInt(year)
+                        })
+                    });
+                    
+                    if (response.status === 401) {
+                        localStorage.removeItem('familyAuth');
+                        localStorage.removeItem('userRole');
+                        window.location.href = '/login.html';
+                        return;
+                    }
+
+                    if (response.ok) {
+                        this.showSuccess('Year tagged successfully');
+                        this.loadMedia();
+                        this.closeYearModal();
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to tag year');
+                    }
+                } catch (error) {
+                    console.error('Error tagging year:', error);
+                    this.showError('Failed to tag year: ' + error.message);
+                } finally {
+                    confirmBtn.textContent = originalText;
+                    confirmBtn.disabled = false;
+                }
+            }
+
+            async deleteCurrentMedia() {
+                if (!this.currentMediaId) return;
+
                 if (!confirm('Are you sure you want to delete this media? This action cannot be undone.')) {
                     return;
                 }
@@ -731,25 +890,26 @@
                     
                     if (response.status === 401) {
                         localStorage.removeItem('familyAuth');
+                        localStorage.removeItem('userRole');
                         window.location.href = '/login.html';
                         return;
                     }
 
                     if (response.ok) {
                         this.closeModal();
-                        this.loadMedia(); // Refresh the media list
+                        this.loadMedia();
                         this.showSuccess('Media deleted successfully');
                     } else {
-                        throw new Error('Failed to delete media');
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to delete media');
                     }
                 } catch (error) {
                     console.error('Error deleting media:', error);
-                    this.showError('Failed to delete media. Please try again.');
+                    this.showError('Failed to delete media: ' + error.message);
                 }
             }
 
             showError(message) {
-                // Simple error notification - you could enhance this
                 const notification = document.createElement('div');
                 notification.style.cssText = `
                     position: fixed; top: 20px; right: 20px; z-index: 10000;
@@ -786,7 +946,6 @@
             }
         }
 
-        // Initialize the application
         const familyHome = new FamilyMediaHome();
     </script>
 </body>

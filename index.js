@@ -421,8 +421,7 @@ app.post('/api/upload', upload.array('media', 10), async (req, res) => {
 // Get all media (family can view, admin can view)
 app.get('/api/media', authenticateFamily, async (req, res) => {
     try {
-        const { search, type } = req.query;
-        
+        const { search, type, year } = req.query;
         let query = supabase.from('media').select('*');
         
         if (search) {
@@ -431,6 +430,14 @@ app.get('/api/media', authenticateFamily, async (req, res) => {
         
         if (type && type !== 'all') {
             query = query.eq('type', type);
+        }
+        
+        if (year && year !== 'all') {
+            if (year === 'untagged') {
+                query = query.is('year', null);
+            } else {
+                query = query.eq('year', parseInt(year));
+            }
         }
         
         query = query.order('created_at', { ascending: false });
@@ -450,7 +457,8 @@ app.get('/api/media', authenticateFamily, async (req, res) => {
             type: row.type,
             tags: row.tags ? row.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
             uploadDate: row.created_at,
-            fileSize: row.file_size
+            fileSize: row.file_size,
+            year: row.year
         }));
 
         res.json(media);
@@ -461,7 +469,45 @@ app.get('/api/media', authenticateFamily, async (req, res) => {
     }
 });
 
-// Delete media (admin only)
+// Add year tag to media (admin only)
+app.put('/api/media/:id/year', authenticateAdmin, async (req, res) => {
+    try {
+        const mediaId = req.params.id;
+        const { year } = req.body;
+        
+        if (!year || isNaN(year) || year < 1900 || year > new Date().getFullYear() + 1) {
+            return res.status(400).json({ error: 'Valid year is required' });
+        }
+        
+        // Update the year in the database
+        const { data, error } = await supabase
+            .from('media')
+            .update({ year: parseInt(year) })
+            .eq('id', mediaId)
+            .select();
+            
+        if (error) {
+            console.error('Database error:', error);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        
+        if (!data || data.length === 0) {
+            return res.status(404).json({ error: 'Media not found' });
+        }
+        
+        res.json({
+            message: 'Year updated successfully',
+            media: {
+                id: data[0].id,
+                year: data[0].year
+            }
+        });
+        
+    } catch (error) {
+        console.error('Year update error:', error);
+        res.status(500).json({ error: 'Year update failed: ' + error.message });
+    }
+});
 app.delete('/api/media/:id', authenticateAdmin, async (req, res) => {
     try {
         const mediaId = req.params.id;

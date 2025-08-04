@@ -16,8 +16,8 @@ const b2KeyId = process.env.B2_KEY_ID;
 const b2ApplicationKey = process.env.B2_APPLICATION_KEY;
 const b2BucketName = process.env.B2_BUCKET_NAME;
 const b2Endpoint = process.env.B2_ENDPOINT;
-const familyPassword = process.env.FAMILY_PASSWORD || 'family2024'; // Family viewing password
-const adminPassword = process.env.ADMIN_PASSWORD || 'admin2024'; // Your admin password
+const familyPassword = process.env.FAMILY_PASSWORD || 'baileyBunch1960'; // Family viewing password
+const adminPassword = process.env.ADMIN_PASSWORD || 'UncleDrew330#!'; // Your admin password
 
 // Initialize Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);
